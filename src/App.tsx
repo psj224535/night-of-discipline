@@ -6,11 +6,12 @@ import {
   TrendingUp, Trophy, UserRound, X,
 } from 'lucide-react'
 import { demoState } from './data/demo'
-import { createOwnerAccount, getOwnerEmail, hasActiveSession, hasOwnerAccount, signInOwner, signOutOwner } from './lib/auth'
+import { getActiveSession, signInAccount, signOutAccount, type AccountSession } from './lib/auth'
 import { displayProgress, goalKindLabel, progressLabel } from './lib/progress'
 import type { AppState, BodyRecord, Challenge, ChallengeStatus, Goal, Participant, PlanGoal, View } from './types'
 
-const STORAGE_KEY = 'night-of-discipline:v2'
+const STORAGE_KEY = 'night-of-discipline:v3'
+const LEGACY_STORAGE_KEY = 'night-of-discipline:v2'
 
 function cloneDemo(): AppState {
   return JSON.parse(JSON.stringify(demoState)) as AppState
@@ -18,15 +19,21 @@ function cloneDemo(): AppState {
 
 function loadState(): AppState {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
     if (!stored) return cloneDemo()
     const parsed = JSON.parse(stored) as AppState
     return {
-      ...parsed,
-      participants: parsed.participants.map((participant) => ({
-        ...participant,
-        pledge: participant.pledge ?? demoState.participants[0].pledge,
-      })),
+      activeProfileId: parsed.activeProfileId,
+      participants: demoState.participants.map((fallback) => {
+        const saved = parsed.participants.find((participant) => participant.id === fallback.id)
+        return saved ? {
+          ...fallback,
+          ...saved,
+          pledge: saved.pledge ?? fallback.pledge,
+          nextChallengeProposal: saved.nextChallengeProposal ?? fallback.nextChallengeProposal,
+        } : fallback
+      }),
+      challenges: demoState.challenges,
     }
   } catch {
     return cloneDemo()
@@ -59,18 +66,16 @@ function clampProgress(value: number) {
 }
 
 function App() {
-  const [authenticated, setAuthenticated] = useState(hasActiveSession)
+  const [session, setSession] = useState<AccountSession | null>(getActiveSession)
 
-  if (!authenticated) return <OwnerAccess onAuthenticated={() => setAuthenticated(true)} />
+  if (!session) return <LoginAccess onAuthenticated={setSession} />
 
-  return <Dashboard onSignOut={() => { signOutOwner(); setAuthenticated(false) }} />
+  return <Dashboard account={session} onSignOut={() => { signOutAccount(); setSession(null) }} />
 }
 
-function OwnerAccess({ onAuthenticated }: { onAuthenticated: () => void }) {
-  const [setup] = useState(() => !hasOwnerAccount())
-  const [email, setEmail] = useState(() => getOwnerEmail() ?? '')
+function LoginAccess({ onAuthenticated }: { onAuthenticated: (session: AccountSession) => void }) {
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [remember, setRemember] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -79,13 +84,11 @@ function OwnerAccess({ onAuthenticated }: { onAuthenticated: () => void }) {
   async function submit(event: FormEvent) {
     event.preventDefault()
     setError('')
-    if (setup && password.length < 8) return setError('비밀번호는 8자 이상 입력해 주세요.')
-    if (setup && password !== confirmPassword) return setError('비밀번호가 서로 일치하지 않습니다.')
     setBusy(true)
     try {
-      if (setup) await createOwnerAccount(email, password, remember)
-      else if (!await signInOwner(email, password, remember)) return setError('이메일 또는 비밀번호가 올바르지 않습니다.')
-      onAuthenticated()
+      const session = await signInAccount(username, password, remember)
+      if (!session) return setError('아이디 또는 비밀번호가 올바르지 않습니다.')
+      onAuthenticated(session)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '문제가 발생했습니다. 다시 시도해 주세요.')
     } finally {
@@ -97,34 +100,34 @@ function OwnerAccess({ onAuthenticated }: { onAuthenticated: () => void }) {
     <main className="auth-shell">
       <div className="auth-art">
         <div className="auth-brand"><span className="brand-mark"><span>N</span></span><span className="brand-type"><strong>NIGHT OF</strong><strong>DISCIPLINE</strong></span></div>
-        <div className="auth-art-copy"><span className="eyebrow">관리자 전용 · 개인 기록</span><h1>꾸준함은<br /><em>증거를 남긴다.</em></h1><p>신체 변화와 도전, 긴 호흡의 성과를 하나의 개인 훈련 기록에 남깁니다.</p></div>
+        <div className="auth-art-copy"><span className="eyebrow">5인 스쿼드 · 개인 기록</span><h1>꾸준함은<br /><em>증거를 남긴다.</em></h1><p>각자의 기록은 직접 관리하고, 함께한 내기와 목표는 한눈에 확인합니다.</p></div>
         <div className="auth-grid-word">NOD</div>
       </div>
       <section className="auth-panel">
         <div className="auth-card">
           <span className="auth-icon"><ShieldCheck /></span>
-          <span className="eyebrow">{setup ? '첫 관리자 설정' : '관리자 로그인'}</span>
-          <h2>{setup ? '관리자 계정을 만들어 주세요' : '다시 오셨군요, 성준님'}</h2>
-          <p>{setup ? '이 기기에서 훈련 기록을 열 수 있는 유일한 계정입니다.' : '개인 훈련 기록을 열려면 로그인해 주세요.'}</p>
+          <span className="eyebrow">스쿼드 로그인</span>
+          <h2>내 계정으로 기록 열기</h2>
+          <p>발급받은 아이디와 비밀번호를 입력해 주세요.</p>
           <form onSubmit={submit}>
-            <label className="form-field full"><span>관리자 이메일</span><input type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-            <label className="form-field full"><span>비밀번호</span><div className="password-field"><input type={showPassword ? 'text' : 'password'} autoComplete={setup ? 'new-password' : 'current-password'} required value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
-            {setup && <label className="form-field full"><span>비밀번호 확인</span><input type={showPassword ? 'text' : 'password'} autoComplete="new-password" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>}
+            <label className="form-field full"><span>아이디</span><input autoComplete="username" required placeholder="아이디 입력" value={username} onChange={(event) => setUsername(event.target.value)} /></label>
+            <label className="form-field full"><span>비밀번호</span><div className="password-field"><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
             <label className="remember-row"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>이 기기에서 로그인 유지</span></label>
             {error && <p className="auth-error" role="alert">{error}</p>}
-            <button className="button button-primary auth-submit" disabled={busy}>{busy ? '안전하게 설정 중…' : setup ? '관리자 계정 만들기' : '기록 열기'} <ArrowRight size={17} /></button>
+            <button className="button button-primary auth-submit" disabled={busy}>{busy ? '로그인 중…' : '기록 열기'} <ArrowRight size={17} /></button>
           </form>
-          <div className="auth-security"><KeyRound size={15} /><p>비밀번호는 salt를 더한 해시로 저장되며 원문은 저장하지 않습니다.</p></div>
-          <small className="auth-caveat">현재는 로컬 MVP 보호 방식입니다. 외부 공개 전에는 서버 인증이 필요합니다.</small>
+          <div className="auth-security"><KeyRound size={15} /><p>계정별 비밀번호는 salt를 더한 해시로 확인하며 원문은 코드에 저장하지 않습니다.</p></div>
+          <small className="auth-caveat">현재는 로컬 MVP 로그인입니다. 외부 공개 전에는 서버 인증이 필요합니다.</small>
         </div>
       </section>
     </main>
   )
 }
 
-function Dashboard({ onSignOut }: { onSignOut: () => void }) {
+function Dashboard({ account, onSignOut }: { account: AccountSession, onSignOut: () => void }) {
   const [state, setState] = useState<AppState>(loadState)
   const [view, setView] = useState<View>('squad')
+  const [activeProfileId, setActiveProfileId] = useState(account.participantId)
   const [selectedChallengeId, setSelectedChallengeId] = useState('oct-26')
   const [recordOpen, setRecordOpen] = useState(false)
   const [goalOpen, setGoalOpen] = useState(false)
@@ -141,9 +144,12 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     return () => window.clearTimeout(timer)
   }, [toast])
 
-  const activeProfile = state.participants.find((person) => person.id === state.activeProfileId) ?? state.participants[0]
+  const activeProfile = state.participants.find((person) => person.id === activeProfileId) ?? state.participants[0]
+  const ownProfile = state.participants.find((person) => person.id === account.participantId) ?? state.participants[0]
+  const canEditActiveProfile = account.role === 'admin' || activeProfile.id === account.participantId
 
   function showView(next: View) {
+    if (next === 'journey') setActiveProfileId(account.participantId)
     setView(next)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -156,6 +162,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   }
 
   function addRecord(record: BodyRecord) {
+    if (!canEditActiveProfile) return
     updateParticipant(activeProfile.id, (person) => {
       let goal = person.goal
       if (goal.type === 'numeric') {
@@ -174,6 +181,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   }
 
   function updateGoal(title: string, goal: Goal) {
+    if (!canEditActiveProfile) return
     updateParticipant(activeProfile.id, (person) => ({
       ...person,
       goalTitle: title,
@@ -186,16 +194,18 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   }
 
   function updatePlans(shortTerm: PlanGoal, longTerm: PlanGoal) {
+    if (!canEditActiveProfile) return
     updateParticipant(activeProfile.id, (person) => ({ ...person, plans: { shortTerm, longTerm } }))
     setToast('단기·장기 목표를 저장했습니다.')
   }
 
-  function updatePledge(pledge: string) {
-    updateParticipant(activeProfile.id, (person) => ({ ...person, pledge }))
-    setToast('이번 다짐을 저장했습니다.')
+  function updateCommitments(pledge: string, nextChallengeProposal: string) {
+    updateParticipant(account.participantId, (person) => ({ ...person, pledge, nextChallengeProposal }))
+    setToast('이번 다짐과 다음 내기 목표 제안을 저장했습니다.')
   }
 
   function resetDemo() {
+    if (account.role !== 'admin') return
     setState(cloneDemo())
     setMenuOpen(false)
     setToast('데모 데이터를 처음 상태로 되돌렸습니다.')
@@ -210,7 +220,9 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     <div className="app-shell">
       <Header
         view={view}
+        account={account}
         activeProfile={activeProfile}
+        canEdit={canEditActiveProfile}
         onNavigate={showView}
         onOpenRecord={() => setRecordOpen(true)}
         menuOpen={menuOpen}
@@ -224,18 +236,21 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           <SquadPage
             participants={state.participants}
             challenges={state.challenges}
+            currentParticipant={ownProfile}
             onOpenProfile={(id) => {
-              setState((current) => ({ ...current, activeProfileId: id }))
-              showView('journey')
+              setActiveProfileId(id)
+              setView('journey')
+              window.scrollTo({ top: 0, behavior: 'smooth' })
             }}
             onOpenChallenge={openChallenge}
-            onUpdatePledge={updatePledge}
+            onUpdateCommitments={updateCommitments}
           />
         )}
         {view === 'journey' && (
           <JourneyPage
             participant={activeProfile}
             challenges={state.challenges}
+            canEdit={canEditActiveProfile}
             onAddRecord={() => setRecordOpen(true)}
             onEditGoal={() => setGoalOpen(true)}
             onUpdatePlans={updatePlans}
@@ -246,20 +261,22 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         )}
       </main>
 
-      <BottomNav view={view} onNavigate={showView} onAdd={() => setRecordOpen(true)} />
+      <BottomNav view={view} onNavigate={showView} onAdd={() => { setActiveProfileId(account.participantId); setRecordOpen(true) }} />
 
-      {recordOpen && <RecordModal participant={activeProfile} onClose={() => setRecordOpen(false)} onSave={addRecord} />}
-      {goalOpen && <GoalModal participant={activeProfile} onClose={() => setGoalOpen(false)} onSave={updateGoal} />}
+      {recordOpen && canEditActiveProfile && <RecordModal participant={activeProfile} onClose={() => setRecordOpen(false)} onSave={addRecord} />}
+      {goalOpen && canEditActiveProfile && <GoalModal participant={activeProfile} onClose={() => setGoalOpen(false)} onSave={updateGoal} />}
       {toast && <div className="toast" role="status"><CheckCircle2 size={18} />{toast}</div>}
     </div>
   )
 }
 
 function Header({
-  view, activeProfile, onNavigate, onOpenRecord, menuOpen, setMenuOpen, onReset, onSignOut,
+  view, account, activeProfile, canEdit, onNavigate, onOpenRecord, menuOpen, setMenuOpen, onReset, onSignOut,
 }: {
   view: View
+  account: AccountSession
   activeProfile: Participant
+  canEdit: boolean
   onNavigate: (view: View) => void
   onOpenRecord: () => void
   menuOpen: boolean
@@ -279,16 +296,17 @@ function Header({
         <NavButton active={view === 'challenges'} onClick={() => onNavigate('challenges')}>월간 내기</NavButton>
       </nav>
       <div className="top-actions">
-        <span className="local-badge"><Lock size={13} /> 이 기기에 비공개 저장</span>
-        <button className="button button-primary desktop-only" onClick={onOpenRecord}><Plus size={17} /> 기록 추가</button>
+        <span className="local-badge"><Lock size={13} /> {account.role === 'admin' ? '관리자 계정' : '내 기록만 편집'}</span>
+        {canEdit && <button className="button button-primary desktop-only" onClick={onOpenRecord}><Plus size={17} /> 기록 추가</button>}
         <button className="avatar-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="프로필 메뉴" aria-expanded={menuOpen}>
           <Avatar person={activeProfile} size="small" />
           <ChevronDown size={15} />
         </button>
         {menuOpen && (
           <div className="profile-menu">
-            <div><strong>{activeProfile.name}</strong><span>{activeProfile.handle}</span></div>
-            <button onClick={onReset}><RotateCcw size={15} /> 데모 데이터 초기화</button>
+            <div><strong>{account.name}</strong><span>@{account.username} · {account.role === 'admin' ? '관리자' : '멤버'}</span></div>
+            {activeProfile.id !== account.participantId && <div className="viewing-note">현재 {activeProfile.name}의 기록을 보는 중입니다.</div>}
+            {account.role === 'admin' && <button onClick={onReset}><RotateCcw size={15} /> 데모 데이터 초기화</button>}
             <button onClick={onSignOut}><LogOut size={15} /> 로그아웃</button>
           </div>
         )}
@@ -301,12 +319,13 @@ function NavButton({ active, children, onClick }: { active: boolean, children: R
   return <button className={active ? 'active' : ''} onClick={onClick}>{children}</button>
 }
 
-function SquadPage({ participants, challenges, onOpenProfile, onOpenChallenge, onUpdatePledge }: {
+function SquadPage({ participants, challenges, currentParticipant, onOpenProfile, onOpenChallenge, onUpdateCommitments }: {
   participants: Participant[]
   challenges: Challenge[]
+  currentParticipant: Participant
   onOpenProfile: (id: string) => void
   onOpenChallenge: (id: string) => void
-  onUpdatePledge: (pledge: string) => void
+  onUpdateCommitments: (pledge: string, nextChallengeProposal: string) => void
 }) {
   const active = challenges.find((challenge) => challenge.status === 'active')!
   const remaining = Math.max(0, Math.ceil((new Date(`${active.endDate}T23:59:59`).getTime() - new Date('2026-10-24T12:00:00').getTime()) / 86400000))
@@ -328,24 +347,23 @@ function SquadPage({ participants, challenges, onOpenProfile, onOpenChallenge, o
       </section>
 
       <section className="content-section weekly-board-section">
-        <SectionHeading eyebrow="이번 주 보드" title="지금 눈앞의 목표" description="참가자가 늘어나면 사람마다 고유한 색상으로 구분됩니다." />
+        <SectionHeading eyebrow="이번 주 보드" title="지금 눈앞의 목표" description="다섯 명의 목표를 각자 고유한 색상으로 구분했습니다." />
         <div className="weekly-goal-board">
           {participants.map((person) => <WeeklyGoalCard key={person.id} person={person} onOpen={() => onOpenProfile(person.id)} />)}
-          <div className="future-member-slot"><Plus size={20} /><div><strong>다음 스쿼드 멤버</strong><span>새로운 색상과 이번 주 목표가 이곳에 표시됩니다.</span></div></div>
         </div>
       </section>
 
       <section className="content-section performance-section">
         <SectionHeading eyebrow="긴 여정" title="월간 내기 성과" description="성공한 달은 선을 위로 끌어올립니다. 점에 마우스를 올리면 결과를, 누르면 상세 기록을 볼 수 있습니다." />
-        <PerformanceGraph challenges={challenges} participant={participants[0]} onOpenChallenge={onOpenChallenge} />
+        <PerformanceGraph challenges={challenges} participant={currentParticipant} onOpenChallenge={onOpenChallenge} />
       </section>
 
       <section className="content-section squad-bottom-grid">
         <article className="activity-focus">
-          <span className="eyebrow">최근 기록</span>
-          <div><Avatar person={participants[0]} /><div><strong>{participants[0].name}</strong><p>{participants[0].updateText}</p><span>{participants[0].lastUpdate}</span></div></div>
+          <span className="eyebrow">나의 최근 기록</span>
+          <div><Avatar person={currentParticipant} /><div><strong>{currentParticipant.name}</strong><p>{currentParticipant.updateText}</p><span>{currentParticipant.lastUpdate}</span></div></div>
         </article>
-        <PledgeCard pledge={participants[0].pledge} onSave={onUpdatePledge} />
+        <CommitmentCard participant={currentParticipant} onSave={onUpdateCommitments} />
       </section>
     </div>
   )
@@ -364,30 +382,49 @@ function WeeklyGoalCard({ person, onOpen }: { person: Participant, onOpen: () =>
   )
 }
 
-function PledgeCard({ pledge, onSave }: { pledge: string, onSave: (pledge: string) => void }) {
+function CommitmentCard({ participant, onSave }: { participant: Participant, onSave: (pledge: string, nextChallengeProposal: string) => void }) {
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(pledge)
+  const [pledge, setPledge] = useState(participant.pledge)
+  const [proposal, setProposal] = useState(participant.nextChallengeProposal)
 
   function save() {
-    const next = draft.trim()
-    if (!next) return
-    onSave(next)
+    const nextPledge = pledge.trim()
+    const nextProposal = proposal.trim()
+    if (!nextPledge || !nextProposal) return
+    onSave(nextPledge, nextProposal)
     setEditing(false)
   }
 
+  function toggleEditing() {
+    setPledge(participant.pledge)
+    setProposal(participant.nextChallengeProposal)
+    setEditing(!editing)
+  }
+
   return (
-    <aside className="pledge-card">
-      <div className="pledge-head"><span className="eyebrow">이번 다짐</span><button onClick={() => { setDraft(pledge); setEditing(!editing) }} aria-label={editing ? '이번 다짐 편집 취소' : '이번 다짐 수정'}>{editing ? <X size={15} /> : <Pencil size={15} />}</button></div>
-      {editing ? <><textarea aria-label="이번 다짐 내용" maxLength={90} value={draft} onChange={(event) => setDraft(event.target.value)} autoFocus /><button className="button pledge-save" disabled={!draft.trim()} onClick={save}><Save size={14} /> 다짐 저장</button></> : <blockquote>“{pledge}”</blockquote>}
+    <aside className="commitment-card">
+      <div className="commitment-head"><div><span className="eyebrow">나의 선언</span><strong>{participant.name}</strong></div><button onClick={toggleEditing} aria-label={editing ? '선언 편집 취소' : '이번 다짐과 다음 목표 수정'}>{editing ? <X size={15} /> : <Pencil size={15} />}</button></div>
+      {editing ? (
+        <div className="commitment-editor">
+          <label><span>이번 다짐</span><textarea aria-label="이번 다짐 내용" maxLength={90} value={pledge} onChange={(event) => setPledge(event.target.value)} autoFocus /></label>
+          <label><span>다음 내기 목표 제안</span><input aria-label="다음 내기 목표 제안" maxLength={60} value={proposal} onChange={(event) => setProposal(event.target.value)} /></label>
+          <button className="button commitment-save" disabled={!pledge.trim() || !proposal.trim()} onClick={save}><Save size={14} /> 선언 저장</button>
+        </div>
+      ) : (
+        <div className="commitment-copy">
+          <div><span>이번 다짐</span><blockquote>“{participant.pledge}”</blockquote></div>
+          <div><span>다음 내기 목표 제안</span><strong>{participant.nextChallengeProposal}</strong></div>
+        </div>
+      )}
     </aside>
   )
 }
 
 function PerformanceGraph({ challenges, participant, onOpenChallenge }: { challenges: Challenge[], participant: Participant, onOpenChallenge: (id: string) => void }) {
   let score = 0
-  const scored = challenges.filter((challenge) => challenge.status !== 'upcoming').map((challenge) => {
+  const scored = challenges.filter((challenge) => challenge.status !== 'upcoming' && challenge.participantIds.includes(participant.id)).map((challenge) => {
     const result = challenge.goals.find((goal) => goal.participantId === participant.id)?.result
-    const contribution = challenge.status === 'active' ? displayProgress(participant.goal) : result ? 100 : -25
+    const contribution = challenge.status === 'active' ? displayProgress(participant.goal) : result === undefined ? 0 : result ? 100 : -25
     score = Math.max(0, score + contribution)
     return { challenge, score, contribution, result }
   })
@@ -415,7 +452,7 @@ function PerformanceGraph({ challenges, participant, onOpenChallenge }: { challe
         {points.map((point) => (
           <button className={`performance-node ${point.challenge.status}`} style={{ left: `${point.x}%`, top: `${point.y}%` }} onClick={() => onOpenChallenge(point.challenge.id)} key={point.challenge.id} aria-label={`${point.challenge.title} 상세 보기`}>
             <span />
-            <div className="node-tooltip"><small>{point.challenge.edition} · {formatDate(point.challenge.endDate)}</small><strong>{point.challenge.title}</strong><p>{point.challenge.status === 'active' ? `${point.contribution}% 진행 중` : point.result ? '목표 달성 · 성과 +100' : '목표 미달성 · 성과 -25'}</p></div>
+            <div className="node-tooltip"><small>{point.challenge.edition} · {formatDate(point.challenge.endDate)}</small><strong>{point.challenge.title}</strong><p>{point.challenge.status === 'active' ? `${point.contribution}% 진행 중` : point.result === undefined ? '결과 미기록 · 성과 변동 없음' : point.result ? '목표 달성 · 성과 +100' : '목표 미달성 · 성과 -25'}</p></div>
           </button>
         ))}
         <div className="x-axis">{points.map((point) => <span style={{ left: `${point.x}%` }} key={point.challenge.id}>{formatDate(point.challenge.endDate)}</span>)}</div>
@@ -434,9 +471,10 @@ function SectionHeading({ eyebrow, title, description, compact = false }: { eyeb
   )
 }
 
-function JourneyPage({ participant, challenges, onAddRecord, onEditGoal, onUpdatePlans }: {
+function JourneyPage({ participant, challenges, canEdit, onAddRecord, onEditGoal, onUpdatePlans }: {
   participant: Participant
   challenges: Challenge[]
+  canEdit: boolean
   onAddRecord: () => void
   onEditGoal: () => void
   onUpdatePlans: (shortTerm: PlanGoal, longTerm: PlanGoal) => void
@@ -448,7 +486,10 @@ function JourneyPage({ participant, challenges, onAddRecord, onEditGoal, onUpdat
   const [editingPlans, setEditingPlans] = useState(false)
   const [draftPlans, setDraftPlans] = useState(participant.plans)
 
-  useEffect(() => setDraftPlans(participant.plans), [participant])
+  useEffect(() => {
+    setDraftPlans(participant.plans)
+    setEditingPlans(false)
+  }, [participant])
 
   function savePlans(event: FormEvent) {
     event.preventDefault()
@@ -462,16 +503,16 @@ function JourneyPage({ participant, challenges, onAddRecord, onEditGoal, onUpdat
         <div className="profile-person">
           <Avatar person={participant} size="large" />
           <div>
-            <span className="eyebrow">나의 훈련</span>
+            <span className="eyebrow">{canEdit ? '나의 훈련' : '스쿼드 기록'}</span>
             <h1>{participant.name}</h1>
             <p>{participant.role} · <Flame size={15} /> {participant.streak}일 연속 기록 중</p>
           </div>
         </div>
-        <span className="owner-profile-badge"><ShieldCheck size={15} /> 관리자 프로필</span>
+        <span className="owner-profile-badge"><ShieldCheck size={15} /> {canEdit ? '편집 가능' : '읽기 전용'}</span>
       </section>
 
       <section className={`goal-plans-panel ${editingPlans ? 'editing' : ''}`}>
-        <div className="goal-plans-head"><div><span className="eyebrow">목표의 방향</span><h2>단기 목표, 장기 목표</h2><p>오늘 행동할 만큼 가까운 목표와, 방향을 잡아줄 만큼 먼 목표를 함께 세웁니다.</p></div><button className="button button-secondary" onClick={() => { setDraftPlans(participant.plans); setEditingPlans(!editingPlans) }}>{editingPlans ? <X size={16} /> : <Pencil size={16} />}{editingPlans ? '취소' : '편집 모드'}</button></div>
+        <div className="goal-plans-head"><div><span className="eyebrow">목표의 방향</span><h2>단기 목표, 장기 목표</h2><p>오늘 행동할 만큼 가까운 목표와, 방향을 잡아줄 만큼 먼 목표를 함께 세웁니다.</p></div>{canEdit && <button className="button button-secondary" onClick={() => { setDraftPlans(participant.plans); setEditingPlans(!editingPlans) }}>{editingPlans ? <X size={16} /> : <Pencil size={16} />}{editingPlans ? '취소' : '편집 모드'}</button>}</div>
         {editingPlans ? (
           <form className="plan-edit-grid" onSubmit={savePlans}>
             <PlanGoalEditor label="단기 목표" value={draftPlans.shortTerm} onChange={(shortTerm) => setDraftPlans({ ...draftPlans, shortTerm })} />
@@ -487,12 +528,12 @@ function JourneyPage({ participant, challenges, onAddRecord, onEditGoal, onUpdat
         <BodyStat label="체중" value={latest.weight} unit="kg" change={latest.weight - first.weight} icon={<Scale />} desired="decrease" />
         <BodyStat label="골격근량" value={latest.skeletalMuscle} unit="kg" change={latest.skeletalMuscle - first.skeletalMuscle} icon={<Dumbbell />} desired="increase" />
         <BodyStat label="체지방률" value={latest.bodyFat} unit="%" change={latest.bodyFat - first.bodyFat} icon={<Activity />} desired="decrease" />
-        <button className="add-stat-card" onClick={onAddRecord}><Plus size={23} /><span>신체 기록 추가</span><small>새 측정값 기록하기</small></button>
+        {canEdit ? <button className="add-stat-card" onClick={onAddRecord}><Plus size={23} /><span>신체 기록 추가</span><small>새 측정값 기록하기</small></button> : <div className="add-stat-card read-only"><Lock size={23} /><span>읽기 전용 기록</span><small>본인 계정에서만 수정할 수 있습니다.</small></div>}
       </section>
 
       <section className="journey-grid">
         <article className="panel goal-panel">
-          <div className="panel-header"><div><span className="eyebrow">현재 목표</span><h2>10월 목표</h2></div><button className="text-button" onClick={onEditGoal}>진행 수정</button></div>
+          <div className="panel-header"><div><span className="eyebrow">현재 목표</span><h2>10월 목표</h2></div>{canEdit && <button className="text-button" onClick={onEditGoal}>진행 수정</button>}</div>
           <div className="goal-ring-wrap">
             <ProgressRing value={progress} accent={participant.accent} />
             <div><span>{goalKindLabel(participant.goal)}</span><h3>{participant.goalTitle}</h3><p>{progressLabel(participant.goal)}</p></div>
@@ -626,6 +667,7 @@ function ChallengeResult({ challenge, participantId }: { challenge: Challenge, p
   const goal = challenge.goals.find((item) => item.participantId === participantId)
   if (!goal) return null
   if (challenge.status !== 'completed') return <span className="result-pill active"><Clock3 size={13} /> {goal.title}</span>
+  if (goal.result === undefined) return <span className="result-pill unknown"><Minus size={13} /> 결과 미기록 · {goal.title}</span>
   return <span className={`result-pill ${goal.result ? 'success' : 'missed'}`}>{goal.result ? <CheckCircle2 size={13} /> : <X size={13} />}{goal.result ? '목표 달성' : '목표 미달성'} · {goal.title}</span>
 }
 
@@ -680,7 +722,7 @@ function ChallengeDetail({ challenge, participants }: { challenge: Challenge, pa
             <div className="challenge-goal-row" key={item.participantId}>
               <Avatar person={person} size="small" />
               <div><strong>{person.name}</strong><span>{item.title}</span></div>
-              {challenge.status === 'completed' ? <span className={`outcome ${item.result ? 'success' : 'missed'}`}>{item.result ? <Check size={14} /> : <Minus size={14} />}{item.result ? '달성' : '미달성'}</span> : challenge.status === 'active' ? <span className="outcome progress">{currentProgress}%</span> : <span className="outcome pending">예정</span>}
+              {challenge.status === 'completed' ? item.result === undefined ? <span className="outcome unknown"><Minus size={14} />미기록</span> : <span className={`outcome ${item.result ? 'success' : 'missed'}`}>{item.result ? <Check size={14} /> : <Minus size={14} />}{item.result ? '달성' : '미달성'}</span> : challenge.status === 'active' ? <span className="outcome progress">{currentProgress}%</span> : <span className="outcome pending">제안</span>}
             </div>
           )
         })}

@@ -54,6 +54,7 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
 .profile-menu strong { font-size: 14px; }
 .profile-menu span { color: var(--muted); font-size: 12px; }
 .profile-menu button { width: 100%; background: #171814; border: 1px solid var(--line); padding: 11px; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.profile-menu .viewing-note { margin-bottom: 8px; padding: 10px; color: var(--muted); background: #171814; border: 1px solid var(--line); font-size: 9px; line-height: 1.5; }
 
 .button { min-height: 42px; border: 1px solid transparent; padding: 0 17px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 13px; transition: transform .16s, background .16s; }
 .button:active { transform: translateY(1px); }
@@ -178,6 +179,8 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
 .add-stat-card svg { color: var(--lime); margin-bottom: 14px; }
 .add-stat-card span { font-weight: 800; font-size: 13px; }
 .add-stat-card small { color: var(--muted); margin-top: 4px; }
+.add-stat-card.read-only { cursor: default; border-style: solid; color: var(--muted); }
+.add-stat-card.read-only:hover { border-color: var(--line); }
 
 .journey-grid { display: grid; grid-template-columns: .86fr 1.45fr; gap: 12px; }
 .panel { background: var(--surface); border: 1px solid var(--line); padding: 26px; }
@@ -246,6 +249,7 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
 .result-pill.success { color: var(--lime); border-color: #d9ff623b; }
 .result-pill.missed { color: var(--danger); border-color: #ff887d42; }
 .result-pill.active { color: var(--amber); }
+.result-pill.unknown { color: var(--muted); }
 
 .page-intro { padding: 70px 0 50px; display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .page-intro h1 { font-size: clamp(43px, 5vw, 64px); margin-bottom: 0; }
@@ -287,6 +291,7 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
 .outcome.missed { color: var(--danger); }
 .outcome.progress { color: var(--lime); font: 800 10px Inter; }
 .outcome.pending { color: var(--amber); }
+.outcome.unknown { color: var(--muted); }
 .date-range { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; margin-top: 27px; }
 .date-range span { color: var(--faint); font-size: 8px; }
 .date-range > div { height: 3px; background: #0e0f0c; position: relative; }
@@ -382,10 +387,6 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
 .weekly-progress > strong { display: block; color: var(--accent); text-align: right; font: 800 20px Inter; margin-bottom: 7px; }
 .weekly-progress > div { height: 5px; background: #0c0d0b; }
 .weekly-progress > div > span { display: block; height: 100%; background: var(--accent); }
-.future-member-slot { min-height: 74px; border: 1px dashed var(--line); padding: 15px 26px; color: var(--faint); display: flex; align-items: center; gap: 16px; }
-.future-member-slot > div { display: grid; gap: 3px; }
-.future-member-slot strong { color: var(--muted); font-size: 10px; }
-.future-member-slot span { font-size: 9px; }
 .performance-graph-card { border: 1px solid var(--line); background: var(--surface); padding: 26px 30px 20px; }
 .performance-legend { display: flex; justify-content: space-between; color: var(--faint); font-size: 9px; }
 .performance-legend span { display: flex; align-items: center; gap: 7px; }
@@ -411,21 +412,32 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
 .performance-footer > div:last-child { border-right: 0; }
 .performance-footer span { color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .1em; }
 .performance-footer strong { font-size: 14px; }
-.squad-bottom-grid { display: grid; grid-template-columns: 1.4fr .6fr; gap: 14px; }
-.activity-focus { background: var(--surface); border: 1px solid var(--line); padding: 27px; }
+.squad-bottom-grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 14px; }
+.activity-focus { min-height: 260px; background: var(--surface); border: 1px solid var(--line); padding: 27px; }
 .activity-focus > div { display: flex; align-items: center; gap: 14px; margin-top: 25px; }
 .activity-focus > div > div { display: grid; gap: 4px; }
 .activity-focus strong { font-size: 12px; }
 .activity-focus p { color: #c7c8be; font-size: 12px; }
 .activity-focus div span { color: var(--faint); font-size: 9px; }
-.pledge-card { min-height: 210px; background: var(--lime); color: #11120f; padding: 27px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
-.pledge-card::after { content: "약속"; position: absolute; right: -12px; bottom: -22px; font-size: 82px; font-weight: 900; color: #11120f0b; letter-spacing: -.1em; }
-.pledge-head { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
-.pledge-head .eyebrow { color: #11120f; }
-.pledge-head button { width: 30px; height: 30px; border: 1px solid #11120f42; background: transparent; display: grid; place-items: center; color: #11120f; }
-.pledge-card blockquote { font-size: 23px; line-height: 1.45; font-weight: 900; letter-spacing: -.045em; margin: auto 0; position: relative; z-index: 1; }
-.pledge-card textarea { flex: 1; min-height: 84px; resize: none; margin: 17px 0 10px; border: 1px solid #11120f42; background: #f5ffcf; color: #11120f; padding: 12px; font-size: 13px; line-height: 1.55; position: relative; z-index: 1; }
-.pledge-save { align-self: flex-start; min-height: 34px; background: #11120f; color: var(--lime); padding: 0 12px; font-size: 10px; position: relative; z-index: 1; }
+.commitment-card { min-height: 260px; background: var(--lime); color: #11120f; padding: 27px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.commitment-card::after { content: "NEXT"; position: absolute; right: -10px; bottom: -25px; font: 900 84px Arial Black, sans-serif; color: #11120f0b; letter-spacing: -.1em; }
+.commitment-head { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+.commitment-head > div { display: grid; gap: 5px; }
+.commitment-head .eyebrow { color: #11120f; }
+.commitment-head strong { font-size: 11px; }
+.commitment-head button { width: 32px; height: 32px; border: 1px solid #11120f42; background: transparent; display: grid; place-items: center; color: #11120f; }
+.commitment-copy { display: grid; grid-template-columns: 1.2fr .8fr; gap: 22px; margin: auto 0; position: relative; z-index: 1; }
+.commitment-copy > div { display: grid; align-content: start; gap: 10px; }
+.commitment-copy > div + div { border-left: 1px solid #11120f2b; padding-left: 22px; }
+.commitment-copy span, .commitment-editor label > span { color: #11120fa3; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.commitment-copy blockquote { font-size: 21px; line-height: 1.42; font-weight: 900; letter-spacing: -.045em; }
+.commitment-copy strong { font-size: 17px; line-height: 1.45; letter-spacing: -.035em; }
+.commitment-editor { display: grid; grid-template-columns: 1.15fr .85fr; gap: 10px; margin-top: 20px; position: relative; z-index: 1; }
+.commitment-editor label { display: grid; gap: 6px; }
+.commitment-editor textarea, .commitment-editor input { width: 100%; border: 1px solid #11120f42; background: #f5ffcf; color: #11120f; padding: 11px; font-size: 12px; }
+.commitment-editor textarea { min-height: 88px; resize: none; line-height: 1.5; }
+.commitment-editor input { height: 42px; }
+.commitment-save { grid-column: 1 / -1; justify-self: start; min-height: 34px; background: #11120f; color: var(--lime); padding: 0 12px; font-size: 10px; }
 
 /* Goal planning and combined chart */
 .owner-profile-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--lime); border: 1px solid #d9ff6240; min-height: 32px; padding: 0 10px; font-size: 9px; }
@@ -459,6 +471,7 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
   .member-grid { grid-template-columns: repeat(2, 1fr); }
   .body-stat-grid { grid-template-columns: repeat(2, 1fr); }
   .journey-grid { grid-template-columns: 1fr; }
+  .squad-bottom-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -554,7 +567,6 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
   .weekly-person > strong { font-size: 15px; }
   .weekly-progress { grid-column: 3 / 5; width: 100%; }
   .weekly-progress > strong { text-align: left; font-size: 15px; }
-  .future-member-slot { padding: 14px 18px; }
   .performance-graph-card { padding: 20px 14px 17px; }
   .performance-legend { gap: 10px; }
   .performance-canvas { height: 280px; padding-left: 24px; }
@@ -564,6 +576,9 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
   .performance-footer > div { padding: 0 10px; }
   .performance-footer > div:last-child { grid-column: 1 / -1; border-top: 1px solid var(--line); padding: 12px 0 0; }
   .squad-bottom-grid { grid-template-columns: 1fr; }
+  .commitment-copy, .commitment-editor { grid-template-columns: 1fr; }
+  .commitment-copy > div + div { border-left: 0; border-top: 1px solid #11120f2b; padding: 15px 0 0; }
+  .commitment-card { min-height: 310px; }
   .goal-plans-head { align-items: flex-start; gap: 18px; }
   .goal-plans-head h2 { font-size: 21px; }
   .goal-plans-head p { line-height: 1.5; }

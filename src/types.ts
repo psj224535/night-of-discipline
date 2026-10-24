@@ -56,6 +56,7 @@ export interface Participant {
   records: BodyRecord[]
   previousResult: 'success' | 'missed' | 'first'
   pledge: string
+  nextChallengeProposal: string
   plans: {
     shortTerm: PlanGoal
     longTerm: PlanGoal
