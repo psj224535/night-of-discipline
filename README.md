@@ -44,6 +44,7 @@ npm run preview
 - 체중·골격근량·체지방률을 하나로 합친 정규화 그래프
 - 이번 다짐과 다음 내기 목표 제안 작성·수정
 - 지난 내기 참가자와 종목 기록
+- 월간 내기를 `화백 회의 1`, `화백 회의 2` 형식으로 표기
 - 신체 기록 입력, 현재 목표 진행 수정, 통합 타임라인
 - 데스크톱과 모바일 반응형 화면
 
@@ -68,3 +69,20 @@ npm run preview
 ## 기술 스택
 
 React 18, TypeScript, Vite, Lucide React, Vitest. 외부 폰트와 이미지에 의존하지 않습니다.
+
+## GitHub Pages 배포
+
+저장소에는 `main` 브랜치가 갱신될 때 `dist`를 자동 배포하는 GitHub Actions 워크플로가 포함되어 있습니다.
+
+1. 변경 사항을 GitHub에 올립니다.
+
+   ```bash
+   git push origin main
+   ```
+
+2. GitHub 저장소의 `Settings` → `Pages`로 이동합니다.
+3. `Build and deployment`의 `Source`를 `GitHub Actions`로 선택합니다.
+4. `Actions` 탭에서 `Deploy to GitHub Pages` 작업이 완료될 때까지 기다립니다.
+5. 배포 주소 `https://psj224535.github.io/night-of-discipline/`로 접속합니다.
+
+> GitHub Pages는 공개 정적 호스팅입니다. 현재 계정 기능은 화면 접근을 구분하는 로컬 MVP이며 실제 서버 인증이 아닙니다. 기록도 브라우저별로 저장되므로 사용자 사이에서 자동으로 공유되지 않습니다.

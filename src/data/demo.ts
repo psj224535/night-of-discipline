@@ -96,7 +96,7 @@ export const demoState: AppState = {
   ],
   challenges: [
     {
-      id: 'sep-26', edition: 'ROUND 09', title: '첫 번째 체성분 내기', subtitle: '각자의 숫자에 정면으로 도전한 한 달',
+      id: 'sep-26', edition: '화백 회의 1', title: '첫 번째 체성분 내기', subtitle: '각자의 숫자에 정면으로 도전한 한 달',
       startDate: '2026-09-01', endDate: '2026-09-30', status: 'completed',
       participantIds: ['seongjun', 'hyunjae', 'taemin', 'yuchan'], reward: '함께하는 회복 식사',
       goals: [
@@ -107,7 +107,7 @@ export const demoState: AppState = {
       ],
     },
     {
-      id: 'oct-26', edition: 'ROUND 10', title: '하루도 빠짐없이', subtitle: '완벽보다 꾸준함',
+      id: 'oct-26', edition: '화백 회의 2', title: '하루도 빠짐없이', subtitle: '완벽보다 꾸준함',
       startDate: '2026-10-01', endDate: '2026-10-31', status: 'active',
       participantIds: ['seongjun', 'jaewoo', 'hyunjae', 'taemin', 'yuchan'], reward: '다음 라운드 종목 선택권',
       goals: [
@@ -119,7 +119,7 @@ export const demoState: AppState = {
       ],
     },
     {
-      id: 'nov-26', edition: 'ROUND 11', title: '다음 내기 제안', subtitle: '각자 제안한 다음 도전',
+      id: 'nov-26', edition: '화백 회의 3', title: '다음 내기 제안', subtitle: '각자 제안한 다음 도전',
       startDate: '2026-11-01', endDate: '2026-11-30', status: 'upcoming',
       participantIds: ['seongjun', 'jaewoo', 'hyunjae', 'taemin', 'yuchan'], reward: '새 운동 장비',
       goals: [
