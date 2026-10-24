@@ -36,7 +36,7 @@ export function hasActiveSession() {
 }
 
 export async function createOwnerAccount(email: string, password: string, remember: boolean) {
-  if (hasOwnerAccount()) throw new Error('An owner account already exists on this device.')
+  if (hasOwnerAccount()) throw new Error('이 기기에는 이미 관리자 계정이 있습니다.')
   const saltBytes = crypto.getRandomValues(new Uint8Array(16))
   const salt = bytesToHex(saltBytes)
   const record: OwnerRecord = {

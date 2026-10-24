@@ -55,6 +55,7 @@ export interface Participant {
   cheerCount: number
   records: BodyRecord[]
   previousResult: 'success' | 'missed' | 'first'
+  pledge: string
   plans: {
     shortTerm: PlanGoal
     longTerm: PlanGoal

@@ -4,7 +4,8 @@ import { demoState } from './demo'
 describe('owner-only demo state', () => {
   it('contains only Park Seongjun', () => {
     expect(demoState.participants).toHaveLength(1)
-    expect(demoState.participants[0].name).toBe('Park Seongjun')
+    expect(demoState.participants[0].name).toBe('박성준')
+    expect(demoState.participants[0].pledge).toBeTruthy()
     expect(demoState.activeProfileId).toBe('seongjun')
   })
 

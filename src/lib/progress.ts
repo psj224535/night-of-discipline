@@ -30,13 +30,13 @@ export function progressLabel(goal: Goal): string {
     return `${goal.current}${goal.unit} / ${goal.target}${goal.unit}`
   }
   if (goal.type === 'checkpoint') {
-    return `${goal.completedCount} / ${goal.checkpoints.length} checkpoints`
+    return `${goal.completedCount} / ${goal.checkpoints.length} 체크포인트`
   }
-  return goal.completed ? 'Complete' : 'In progress'
+  return goal.completed ? '완료' : '진행 중'
 }
 
 export function goalKindLabel(goal: Goal): string {
-  if (goal.type === 'numeric') return 'Numeric goal'
-  if (goal.type === 'checkpoint') return 'Milestone goal'
-  return 'Completion goal'
+  if (goal.type === 'numeric') return '수치 목표'
+  if (goal.type === 'checkpoint') return '단계 목표'
+  return '완료 목표'
 }

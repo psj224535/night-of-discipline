@@ -1,10 +1,10 @@
 # NIGHT OF DISCIPLINE
 
-A private, responsive training log for Park Seongjun. It tracks weekly targets, body-composition changes, short- and long-term goals, and cumulative monthly challenge performance.
+박성준의 주간 운동 목표, 신체 변화, 단기·장기 목표와 월간 내기 성과를 기록하는 개인용 반응형 웹앱입니다.
 
-## Run locally
+## 로컬 실행
 
-Node.js 20 or later is required. The repository includes an `.nvmrc` for Node 22.
+Node.js 20 이상이 필요합니다. 저장소의 `.nvmrc`는 Node 22를 사용합니다.
 
 ```bash
 nvm use
@@ -12,20 +12,20 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite, usually `http://localhost:5173`.
+터미널에 표시되는 주소를 브라우저에서 여세요. 기본 주소는 `http://localhost:5173`입니다.
 
-## First-time owner setup
+## 최초 관리자 설정
 
-The first visit opens an owner-account setup screen. Enter your own email and a password of at least eight characters. That becomes the only account recognized by that browser profile.
+처음 접속하면 관리자 계정 설정 화면이 나타납니다. 본인의 이메일과 8자 이상의 비밀번호를 입력하세요. 이후 해당 브라우저 프로필에서는 이 계정만 인식합니다.
 
-- The password is salted and hashed with the Web Crypto API before storage.
-- The plain-text password is never saved.
-- Owner credentials, sessions, records, and goals stay in browser storage.
-- Signing out removes the active session, not the owner account.
+- 비밀번호는 Web Crypto API를 이용해 salt가 포함된 해시로 저장됩니다.
+- 비밀번호 원문은 저장하지 않습니다.
+- 관리자 정보, 세션, 운동 기록과 목표는 브라우저 저장소에 보관됩니다.
+- 로그아웃하면 현재 세션만 종료되며 관리자 계정은 유지됩니다.
 
-> This is local MVP access control, not production authentication. Anyone with access to the browser profile or developer tools may be able to alter local data. Before public deployment, move authentication, authorization, and records to a trusted backend.
+> 현재 로그인은 로컬 MVP용 보호 기능입니다. 브라우저 프로필이나 개발자 도구에 접근할 수 있는 사람은 로컬 데이터를 변경할 수 있습니다. 외부 공개 전에는 인증·권한·데이터를 신뢰할 수 있는 백엔드로 옮겨야 합니다.
 
-## Validation
+## 검증
 
 ```bash
 npm test
@@ -33,37 +33,37 @@ npm run build
 npm run preview
 ```
 
-## Features
+## 주요 기능
 
-- Owner-only setup, sign-in, persistent-session option, and sign-out
-- English interface with a single Park Seongjun demo profile
-- Weekly squad board designed to support a distinct color per future member
-- Cumulative challenge-performance graph beginning on September 30, 2026
-- Hover/focus result cards on challenge nodes and click-through to full challenge details
-- Short- and long-term goal edit mode with titles, dates, and execution notes
-- Weight, skeletal-muscle, and body-fat series combined in one normalized graph
-- Body-record input, current-goal progress editing, and a unified history timeline
-- Responsive desktop and mobile layouts
-- Browser-local persistence with demo-data reset
+- 관리자 전용 계정 생성, 로그인 유지와 로그아웃
+- 박성준 한 명으로 구성된 한국어 데모 데이터
+- 사람마다 고유 색상을 배정할 수 있는 이번 주 목표 보드
+- 2026년 9월 30일부터 누적되는 월간 내기 성과 그래프
+- 내기 노드 hover/focus 결과 배너와 상세 기록 연결
+- 단기·장기 목표의 이름, 목표일, 실행 계획 편집
+- 체중·골격근량·체지방률을 하나로 합친 정규화 그래프
+- 이번 다짐 작성·수정과 브라우저 로컬 저장
+- 신체 기록 입력, 현재 목표 진행 수정, 통합 타임라인
+- 데스크톱과 모바일 반응형 화면
 
-## Data model
+## 데이터 모델
 
-- `Participant`: profile, weekly/current goal, goal plans, recent activity, and body records
-- `Goal`: numeric, milestone, or completion-based progress
-- `PlanGoal`: short- or long-term goal title, target date, and execution note
-- `BodyRecord`: dated weight, skeletal-muscle, body-fat, and note values
-- `Challenge`: monthly round, status, target snapshot, stake, and outcome
+- `Participant`: 프로필, 현재 목표, 단기·장기 목표, 이번 다짐, 최근 활동과 신체 기록
+- `Goal`: 수치형, 체크포인트형 또는 완료형 목표
+- `PlanGoal`: 단기·장기 목표 이름, 목표일과 실행 계획
+- `BodyRecord`: 날짜별 체중, 골격근량, 체지방률과 메모
+- `Challenge`: 월간 라운드, 상태, 목표 스냅샷, 보상과 결과
 
-Numeric goals are normalized against their start and target values. The combined body graph normalizes each metric to percentage change from its own September 30 baseline so kilograms and percentages can be read on one chart.
+수치 목표는 시작값과 목표값 사이의 진행률로 정규화합니다. 통합 신체 그래프는 kg과 %를 한 화면에서 비교할 수 있도록 각 지표를 9월 30일 시작점 대비 변화율로 표시합니다.
 
-## Production path
+## 실제 서비스로 확장할 때
 
-1. Add server-managed authentication and an owner allowlist.
-2. Store credentials and sessions in a secure identity provider; never ship password hashes to the client.
-3. Move body records, goals, and challenges to PostgreSQL with owner-scoped authorization.
-4. Add encrypted backups, audit logs, and explicit export/delete controls.
-5. Keep only non-sensitive UI preferences in browser storage.
+1. 서버 관리형 로그인과 관리자 이메일 허용 목록을 추가합니다.
+2. 비밀번호 해시는 클라이언트가 아닌 안전한 인증 제공자에 보관합니다.
+3. 신체 기록, 목표와 월간 내기를 PostgreSQL로 이전하고 소유자 권한을 검사합니다.
+4. 암호화 백업, 감사 로그와 내보내기·삭제 기능을 추가합니다.
+5. 브라우저에는 민감하지 않은 화면 설정만 저장합니다.
 
-## Stack
+## 기술 스택
 
-React 18, TypeScript, Vite, Lucide React, and Vitest. The UI does not depend on remote fonts or images.
+React 18, TypeScript, Vite, Lucide React, Vitest. 외부 폰트와 이미지에 의존하지 않습니다.

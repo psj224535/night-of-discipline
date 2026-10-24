@@ -418,8 +418,14 @@ p, h1, h2, h3, h4, blockquote { margin: 0; }
 .activity-focus strong { font-size: 12px; }
 .activity-focus p { color: #c7c8be; font-size: 12px; }
 .activity-focus div span { color: var(--faint); font-size: 9px; }
-.compact-manifesto { min-height: 210px; }
-.compact-manifesto blockquote { margin-top: 25px; font-size: 24px; }
+.pledge-card { min-height: 210px; background: var(--lime); color: #11120f; padding: 27px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.pledge-card::after { content: "약속"; position: absolute; right: -12px; bottom: -22px; font-size: 82px; font-weight: 900; color: #11120f0b; letter-spacing: -.1em; }
+.pledge-head { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+.pledge-head .eyebrow { color: #11120f; }
+.pledge-head button { width: 30px; height: 30px; border: 1px solid #11120f42; background: transparent; display: grid; place-items: center; color: #11120f; }
+.pledge-card blockquote { font-size: 23px; line-height: 1.45; font-weight: 900; letter-spacing: -.045em; margin: auto 0; position: relative; z-index: 1; }
+.pledge-card textarea { flex: 1; min-height: 84px; resize: none; margin: 17px 0 10px; border: 1px solid #11120f42; background: #f5ffcf; color: #11120f; padding: 12px; font-size: 13px; line-height: 1.55; position: relative; z-index: 1; }
+.pledge-save { align-self: flex-start; min-height: 34px; background: #11120f; color: var(--lime); padding: 0 12px; font-size: 10px; position: relative; z-index: 1; }
 
 /* Goal planning and combined chart */
 .owner-profile-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--lime); border: 1px solid #d9ff6240; min-height: 32px; padding: 0 10px; font-size: 9px; }

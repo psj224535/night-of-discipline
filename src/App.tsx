@@ -19,23 +19,31 @@ function cloneDemo(): AppState {
 function loadState(): AppState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) as AppState : cloneDemo()
+    if (!stored) return cloneDemo()
+    const parsed = JSON.parse(stored) as AppState
+    return {
+      ...parsed,
+      participants: parsed.participants.map((participant) => ({
+        ...participant,
+        pledge: participant.pledge ?? demoState.participants[0].pledge,
+      })),
+    }
   } catch {
     return cloneDemo()
   }
 }
 
 const metricLabels = {
-  weight: 'Weight',
-  skeletalMuscle: 'Skeletal muscle',
-  bodyFat: 'Body fat',
+  weight: '체중',
+  skeletalMuscle: '골격근량',
+  bodyFat: '체지방률',
 } as const
 
 const metricUnits = { weight: 'kg', skeletalMuscle: 'kg', bodyFat: '%' } as const
 
 function formatDate(date: string, withYear = false) {
   const parsed = new Date(`${date}T12:00:00`)
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat('ko-KR', {
     ...(withYear ? { year: 'numeric' as const } : {}),
     month: 'short', day: 'numeric',
   }).format(parsed)
@@ -71,15 +79,15 @@ function OwnerAccess({ onAuthenticated }: { onAuthenticated: () => void }) {
   async function submit(event: FormEvent) {
     event.preventDefault()
     setError('')
-    if (setup && password.length < 8) return setError('Use at least 8 characters for your password.')
-    if (setup && password !== confirmPassword) return setError('The passwords do not match.')
+    if (setup && password.length < 8) return setError('비밀번호는 8자 이상 입력해 주세요.')
+    if (setup && password !== confirmPassword) return setError('비밀번호가 서로 일치하지 않습니다.')
     setBusy(true)
     try {
       if (setup) await createOwnerAccount(email, password, remember)
-      else if (!await signInOwner(email, password, remember)) return setError('Email or password is incorrect.')
+      else if (!await signInOwner(email, password, remember)) return setError('이메일 또는 비밀번호가 올바르지 않습니다.')
       onAuthenticated()
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Something went wrong. Please try again.')
+      setError(reason instanceof Error ? reason.message : '문제가 발생했습니다. 다시 시도해 주세요.')
     } finally {
       setBusy(false)
     }
@@ -89,25 +97,25 @@ function OwnerAccess({ onAuthenticated }: { onAuthenticated: () => void }) {
     <main className="auth-shell">
       <div className="auth-art">
         <div className="auth-brand"><span className="brand-mark"><span>N</span></span><span className="brand-type"><strong>NIGHT OF</strong><strong>DISCIPLINE</strong></span></div>
-        <div className="auth-art-copy"><span className="eyebrow">OWNER ACCESS · PRIVATE LOG</span><h1>Discipline<br />leaves <em>evidence.</em></h1><p>Your body data, challenges, and long-game progress — kept in one private training log.</p></div>
+        <div className="auth-art-copy"><span className="eyebrow">관리자 전용 · 개인 기록</span><h1>꾸준함은<br /><em>증거를 남긴다.</em></h1><p>신체 변화와 도전, 긴 호흡의 성과를 하나의 개인 훈련 기록에 남깁니다.</p></div>
         <div className="auth-grid-word">NOD</div>
       </div>
       <section className="auth-panel">
         <div className="auth-card">
           <span className="auth-icon"><ShieldCheck /></span>
-          <span className="eyebrow">{setup ? 'FIRST-TIME SETUP' : 'OWNER SIGN IN'}</span>
-          <h2>{setup ? 'Create your owner account' : 'Welcome back, Seongjun'}</h2>
-          <p>{setup ? 'This is the only account that can open this training log on this device.' : 'Sign in to open your private discipline log.'}</p>
+          <span className="eyebrow">{setup ? '첫 관리자 설정' : '관리자 로그인'}</span>
+          <h2>{setup ? '관리자 계정을 만들어 주세요' : '다시 오셨군요, 성준님'}</h2>
+          <p>{setup ? '이 기기에서 훈련 기록을 열 수 있는 유일한 계정입니다.' : '개인 훈련 기록을 열려면 로그인해 주세요.'}</p>
           <form onSubmit={submit}>
-            <label className="form-field full"><span>Owner email</span><input type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-            <label className="form-field full"><span>Password</span><div className="password-field"><input type={showPassword ? 'text' : 'password'} autoComplete={setup ? 'new-password' : 'current-password'} required value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
-            {setup && <label className="form-field full"><span>Confirm password</span><input type={showPassword ? 'text' : 'password'} autoComplete="new-password" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>}
-            <label className="remember-row"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>Keep me signed in on this device</span></label>
+            <label className="form-field full"><span>관리자 이메일</span><input type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+            <label className="form-field full"><span>비밀번호</span><div className="password-field"><input type={showPassword ? 'text' : 'password'} autoComplete={setup ? 'new-password' : 'current-password'} required value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
+            {setup && <label className="form-field full"><span>비밀번호 확인</span><input type={showPassword ? 'text' : 'password'} autoComplete="new-password" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>}
+            <label className="remember-row"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>이 기기에서 로그인 유지</span></label>
             {error && <p className="auth-error" role="alert">{error}</p>}
-            <button className="button button-primary auth-submit" disabled={busy}>{busy ? 'Securing access…' : setup ? 'Create owner account' : 'Enter the log'} <ArrowRight size={17} /></button>
+            <button className="button button-primary auth-submit" disabled={busy}>{busy ? '안전하게 설정 중…' : setup ? '관리자 계정 만들기' : '기록 열기'} <ArrowRight size={17} /></button>
           </form>
-          <div className="auth-security"><KeyRound size={15} /><p>Your password is salted and hashed before it is stored. It is never saved as plain text.</p></div>
-          <small className="auth-caveat">Local MVP protection only. Server authentication is required before public deployment.</small>
+          <div className="auth-security"><KeyRound size={15} /><p>비밀번호는 salt를 더한 해시로 저장되며 원문은 저장하지 않습니다.</p></div>
+          <small className="auth-caveat">현재는 로컬 MVP 보호 방식입니다. 외부 공개 전에는 서버 인증이 필요합니다.</small>
         </div>
       </section>
     </main>
@@ -157,12 +165,12 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         ...person,
         goal,
         records: [...person.records, record].sort((a, b) => a.date.localeCompare(b.date)),
-        lastUpdate: 'Just now',
-        updateText: `Added a body scan for ${formatDate(record.date)}.`,
+        lastUpdate: '방금 전',
+        updateText: `${formatDate(record.date)} 신체 기록을 추가했습니다.`,
       }
     })
     setRecordOpen(false)
-    setToast('Body record saved on this device.')
+    setToast('신체 기록을 이 기기에 저장했습니다.')
   }
 
   function updateGoal(title: string, goal: Goal) {
@@ -170,22 +178,27 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
       ...person,
       goalTitle: title,
       goal,
-      lastUpdate: 'Just now',
-      updateText: 'Updated current goal progress.',
+      lastUpdate: '방금 전',
+      updateText: '현재 목표 진행 상황을 수정했습니다.',
     }))
     setGoalOpen(false)
-    setToast('Goal progress updated.')
+    setToast('목표 진행 상황을 수정했습니다.')
   }
 
   function updatePlans(shortTerm: PlanGoal, longTerm: PlanGoal) {
     updateParticipant(activeProfile.id, (person) => ({ ...person, plans: { shortTerm, longTerm } }))
-    setToast('Short- and long-term goals saved.')
+    setToast('단기·장기 목표를 저장했습니다.')
+  }
+
+  function updatePledge(pledge: string) {
+    updateParticipant(activeProfile.id, (person) => ({ ...person, pledge }))
+    setToast('이번 다짐을 저장했습니다.')
   }
 
   function resetDemo() {
     setState(cloneDemo())
     setMenuOpen(false)
-    setToast('Demo data restored to its starting point.')
+    setToast('데모 데이터를 처음 상태로 되돌렸습니다.')
   }
 
   function openChallenge(id: string) {
@@ -216,6 +229,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
               showView('journey')
             }}
             onOpenChallenge={openChallenge}
+            onUpdatePledge={updatePledge}
           />
         )}
         {view === 'journey' && (
@@ -255,27 +269,27 @@ function Header({
 }) {
   return (
     <header className="topbar">
-      <button className="brand" onClick={() => onNavigate('squad')} aria-label="Squad home">
+      <button className="brand" onClick={() => onNavigate('squad')} aria-label="스쿼드 홈">
         <span className="brand-mark"><span>N</span></span>
         <span className="brand-type"><strong>NIGHT OF</strong><strong>DISCIPLINE</strong></span>
       </button>
-      <nav className="desktop-nav" aria-label="Primary navigation">
-        <NavButton active={view === 'squad'} onClick={() => onNavigate('squad')}>Squad</NavButton>
-        <NavButton active={view === 'journey'} onClick={() => onNavigate('journey')}>My Log</NavButton>
-        <NavButton active={view === 'challenges'} onClick={() => onNavigate('challenges')}>Challenges</NavButton>
+      <nav className="desktop-nav" aria-label="주요 메뉴">
+        <NavButton active={view === 'squad'} onClick={() => onNavigate('squad')}>스쿼드</NavButton>
+        <NavButton active={view === 'journey'} onClick={() => onNavigate('journey')}>나의 기록</NavButton>
+        <NavButton active={view === 'challenges'} onClick={() => onNavigate('challenges')}>월간 내기</NavButton>
       </nav>
       <div className="top-actions">
-        <span className="local-badge"><Lock size={13} /> Private on this device</span>
-        <button className="button button-primary desktop-only" onClick={onOpenRecord}><Plus size={17} /> Add record</button>
-        <button className="avatar-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Profile menu" aria-expanded={menuOpen}>
+        <span className="local-badge"><Lock size={13} /> 이 기기에 비공개 저장</span>
+        <button className="button button-primary desktop-only" onClick={onOpenRecord}><Plus size={17} /> 기록 추가</button>
+        <button className="avatar-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="프로필 메뉴" aria-expanded={menuOpen}>
           <Avatar person={activeProfile} size="small" />
           <ChevronDown size={15} />
         </button>
         {menuOpen && (
           <div className="profile-menu">
             <div><strong>{activeProfile.name}</strong><span>{activeProfile.handle}</span></div>
-            <button onClick={onReset}><RotateCcw size={15} /> Reset demo data</button>
-            <button onClick={onSignOut}><LogOut size={15} /> Sign out</button>
+            <button onClick={onReset}><RotateCcw size={15} /> 데모 데이터 초기화</button>
+            <button onClick={onSignOut}><LogOut size={15} /> 로그아웃</button>
           </div>
         )}
       </div>
@@ -287,11 +301,12 @@ function NavButton({ active, children, onClick }: { active: boolean, children: R
   return <button className={active ? 'active' : ''} onClick={onClick}>{children}</button>
 }
 
-function SquadPage({ participants, challenges, onOpenProfile, onOpenChallenge }: {
+function SquadPage({ participants, challenges, onOpenProfile, onOpenChallenge, onUpdatePledge }: {
   participants: Participant[]
   challenges: Challenge[]
   onOpenProfile: (id: string) => void
   onOpenChallenge: (id: string) => void
+  onUpdatePledge: (pledge: string) => void
 }) {
   const active = challenges.find((challenge) => challenge.status === 'active')!
   const remaining = Math.max(0, Math.ceil((new Date(`${active.endDate}T23:59:59`).getTime() - new Date('2026-10-24T12:00:00').getTime()) / 86400000))
@@ -300,37 +315,37 @@ function SquadPage({ participants, challenges, onOpenProfile, onOpenChallenge }:
     <div className="page squad-page">
       <section className="squad-intro">
         <div>
-          <div className="eyebrow"><span className="live-dot" /> PRIVATE SQUAD BOARD · WEEK 4</div>
-          <h1>This week,<br /><em>move the line.</em></h1>
-          <p>One clear target. One honest update. Every challenge becomes another point in the long game.</p>
+          <div className="eyebrow"><span className="live-dot" /> 개인 스쿼드 보드 · 4주차</div>
+          <h1>이번 주도,<br /><em>선을 끌어올리자.</em></h1>
+          <p>분명한 목표 하나, 솔직한 기록 하나. 매달의 도전이 긴 여정의 새로운 점이 됩니다.</p>
         </div>
         <aside className="round-snapshot">
-          <span>{active.edition} · ACTIVE</span>
+          <span>{active.edition} · 진행 중</span>
           <strong>{active.title}</strong>
-          <p>{remaining} days left to close the month.</p>
-          <button onClick={() => onOpenChallenge(active.id)}>Open challenge <ArrowRight size={16} /></button>
+          <p>이번 달 마감까지 {remaining}일 남았습니다.</p>
+          <button onClick={() => onOpenChallenge(active.id)}>내기 자세히 보기 <ArrowRight size={16} /></button>
         </aside>
       </section>
 
       <section className="content-section weekly-board-section">
-        <SectionHeading eyebrow="THIS WEEK'S BOARD" title="The target in front of us" description="Every person keeps a distinct color as the squad grows." />
+        <SectionHeading eyebrow="이번 주 보드" title="지금 눈앞의 목표" description="참가자가 늘어나면 사람마다 고유한 색상으로 구분됩니다." />
         <div className="weekly-goal-board">
           {participants.map((person) => <WeeklyGoalCard key={person.id} person={person} onOpen={() => onOpenProfile(person.id)} />)}
-          <div className="future-member-slot"><Plus size={20} /><div><strong>Next squad member</strong><span>A new color and weekly target will appear here.</span></div></div>
+          <div className="future-member-slot"><Plus size={20} /><div><strong>다음 스쿼드 멤버</strong><span>새로운 색상과 이번 주 목표가 이곳에 표시됩니다.</span></div></div>
         </div>
       </section>
 
       <section className="content-section performance-section">
-        <SectionHeading eyebrow="THE LONG GAME" title="Challenge performance" description="Successful months push the line upward. Hover a node for the result; select it for the full record." />
+        <SectionHeading eyebrow="긴 여정" title="월간 내기 성과" description="성공한 달은 선을 위로 끌어올립니다. 점에 마우스를 올리면 결과를, 누르면 상세 기록을 볼 수 있습니다." />
         <PerformanceGraph challenges={challenges} participant={participants[0]} onOpenChallenge={onOpenChallenge} />
       </section>
 
       <section className="content-section squad-bottom-grid">
         <article className="activity-focus">
-          <span className="eyebrow">LATEST CHECK-IN</span>
+          <span className="eyebrow">최근 기록</span>
           <div><Avatar person={participants[0]} /><div><strong>{participants[0].name}</strong><p>{participants[0].updateText}</p><span>{participants[0].lastUpdate}</span></div></div>
         </article>
-        <aside className="manifesto-card compact-manifesto"><span className="eyebrow">OWNER RULE #01</span><blockquote>“No performance.<br />Just proof.”</blockquote></aside>
+        <PledgeCard pledge={participants[0].pledge} onSave={onUpdatePledge} />
       </section>
     </div>
   )
@@ -346,6 +361,25 @@ function WeeklyGoalCard({ person, onOpen }: { person: Participant, onOpen: () =>
       <div className="weekly-progress"><strong>{progress}%</strong><div><span style={{ width: `${clampProgress(progress)}%` }} /></div></div>
       <ArrowRight size={19} />
     </button>
+  )
+}
+
+function PledgeCard({ pledge, onSave }: { pledge: string, onSave: (pledge: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(pledge)
+
+  function save() {
+    const next = draft.trim()
+    if (!next) return
+    onSave(next)
+    setEditing(false)
+  }
+
+  return (
+    <aside className="pledge-card">
+      <div className="pledge-head"><span className="eyebrow">이번 다짐</span><button onClick={() => { setDraft(pledge); setEditing(!editing) }} aria-label={editing ? '이번 다짐 편집 취소' : '이번 다짐 수정'}>{editing ? <X size={15} /> : <Pencil size={15} />}</button></div>
+      {editing ? <><textarea aria-label="이번 다짐 내용" maxLength={90} value={draft} onChange={(event) => setDraft(event.target.value)} autoFocus /><button className="button pledge-save" disabled={!draft.trim()} onClick={save}><Save size={14} /> 다짐 저장</button></> : <blockquote>“{pledge}”</blockquote>}
+    </aside>
   )
 }
 
@@ -369,24 +403,24 @@ function PerformanceGraph({ challenges, participant, onOpenChallenge }: { challe
 
   return (
     <article className="performance-graph-card">
-      <div className="performance-legend"><span><i /> Cumulative momentum</span><span>Baseline: Sep 30, 2026</span></div>
+      <div className="performance-legend"><span><i /> 누적 성과 지수</span><span>시작점: 2026년 9월 30일</span></div>
       <div className="performance-canvas">
         <div className="y-axis"><span>{maxScore}</span><span>{Math.round(maxScore / 2)}</span><span>0</span></div>
-        <svg viewBox="0 0 100 92" preserveAspectRatio="none" role="img" aria-label="Cumulative challenge performance over time">
+        <svg viewBox="0 0 100 92" preserveAspectRatio="none" role="img" aria-label="시간에 따른 누적 내기 성과 그래프">
           <defs><linearGradient id="performance-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#d9ff62" stopOpacity=".22" /><stop offset="1" stopColor="#d9ff62" stopOpacity="0" /></linearGradient></defs>
           {[16, 50, 84].map((y) => <line key={y} x1="6" x2="96" y1={y} y2={y} className="grid-line" />)}
           <path d={area} fill="url(#performance-fill)" />
           <path d={path} fill="none" stroke="#d9ff62" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
         </svg>
         {points.map((point) => (
-          <button className={`performance-node ${point.challenge.status}`} style={{ left: `${point.x}%`, top: `${point.y}%` }} onClick={() => onOpenChallenge(point.challenge.id)} key={point.challenge.id} aria-label={`Open ${point.challenge.title} details`}>
+          <button className={`performance-node ${point.challenge.status}`} style={{ left: `${point.x}%`, top: `${point.y}%` }} onClick={() => onOpenChallenge(point.challenge.id)} key={point.challenge.id} aria-label={`${point.challenge.title} 상세 보기`}>
             <span />
-            <div className="node-tooltip"><small>{point.challenge.edition} · {formatDate(point.challenge.endDate)}</small><strong>{point.challenge.title}</strong><p>{point.challenge.status === 'active' ? `${point.contribution}% in progress` : point.result ? 'Goal achieved · +100 momentum' : 'Goal missed · -25 momentum'}</p></div>
+            <div className="node-tooltip"><small>{point.challenge.edition} · {formatDate(point.challenge.endDate)}</small><strong>{point.challenge.title}</strong><p>{point.challenge.status === 'active' ? `${point.contribution}% 진행 중` : point.result ? '목표 달성 · 성과 +100' : '목표 미달성 · 성과 -25'}</p></div>
           </button>
         ))}
         <div className="x-axis">{points.map((point) => <span style={{ left: `${point.x}%` }} key={point.challenge.id}>{formatDate(point.challenge.endDate)}</span>)}</div>
       </div>
-      <div className="performance-footer"><div><span>Current momentum</span><strong>{score}</strong></div><div><span>Completed rounds</span><strong>{challenges.filter((item) => item.status === 'completed').length}</strong></div><div><span>Active target</span><strong>{participant.goalTitle}</strong></div></div>
+      <div className="performance-footer"><div><span>현재 성과 지수</span><strong>{score}</strong></div><div><span>완료한 라운드</span><strong>{challenges.filter((item) => item.status === 'completed').length}</strong></div><div><span>현재 목표</span><strong>{participant.goalTitle}</strong></div></div>
     </article>
   )
 }
@@ -428,46 +462,46 @@ function JourneyPage({ participant, challenges, onAddRecord, onEditGoal, onUpdat
         <div className="profile-person">
           <Avatar person={participant} size="large" />
           <div>
-            <span className="eyebrow">MY DISCIPLINE</span>
+            <span className="eyebrow">나의 훈련</span>
             <h1>{participant.name}</h1>
-            <p>{participant.role} · <Flame size={15} /> {participant.streak}-day logging streak</p>
+            <p>{participant.role} · <Flame size={15} /> {participant.streak}일 연속 기록 중</p>
           </div>
         </div>
-        <span className="owner-profile-badge"><ShieldCheck size={15} /> Owner profile</span>
+        <span className="owner-profile-badge"><ShieldCheck size={15} /> 관리자 프로필</span>
       </section>
 
       <section className={`goal-plans-panel ${editingPlans ? 'editing' : ''}`}>
-        <div className="goal-plans-head"><div><span className="eyebrow">DIRECTION OF TRAVEL</span><h2>Short game. Long game.</h2><p>Set the target close enough to act on, and the one far enough to guide you.</p></div><button className="button button-secondary" onClick={() => { setDraftPlans(participant.plans); setEditingPlans(!editingPlans) }}>{editingPlans ? <X size={16} /> : <Pencil size={16} />}{editingPlans ? 'Cancel' : 'Edit mode'}</button></div>
+        <div className="goal-plans-head"><div><span className="eyebrow">목표의 방향</span><h2>단기 목표, 장기 목표</h2><p>오늘 행동할 만큼 가까운 목표와, 방향을 잡아줄 만큼 먼 목표를 함께 세웁니다.</p></div><button className="button button-secondary" onClick={() => { setDraftPlans(participant.plans); setEditingPlans(!editingPlans) }}>{editingPlans ? <X size={16} /> : <Pencil size={16} />}{editingPlans ? '취소' : '편집 모드'}</button></div>
         {editingPlans ? (
           <form className="plan-edit-grid" onSubmit={savePlans}>
-            <PlanGoalEditor label="Short-term goal" value={draftPlans.shortTerm} onChange={(shortTerm) => setDraftPlans({ ...draftPlans, shortTerm })} />
-            <PlanGoalEditor label="Long-term goal" value={draftPlans.longTerm} onChange={(longTerm) => setDraftPlans({ ...draftPlans, longTerm })} />
-            <div className="plan-save-row"><button className="button button-primary"><Save size={16} /> Save both goals</button></div>
+            <PlanGoalEditor label="단기 목표" value={draftPlans.shortTerm} onChange={(shortTerm) => setDraftPlans({ ...draftPlans, shortTerm })} />
+            <PlanGoalEditor label="장기 목표" value={draftPlans.longTerm} onChange={(longTerm) => setDraftPlans({ ...draftPlans, longTerm })} />
+            <div className="plan-save-row"><button className="button button-primary"><Save size={16} /> 두 목표 저장</button></div>
           </form>
         ) : (
-          <div className="plan-card-grid"><PlanGoalCard label="NEXT CHECKPOINT" goal={participant.plans.shortTerm} index="01" /><PlanGoalCard label="NORTH STAR" goal={participant.plans.longTerm} index="02" /></div>
+          <div className="plan-card-grid"><PlanGoalCard label="다음 체크포인트" goal={participant.plans.shortTerm} index="01" /><PlanGoalCard label="장기 방향" goal={participant.plans.longTerm} index="02" /></div>
         )}
       </section>
 
       <section className="body-stat-grid">
-        <BodyStat label="Weight" value={latest.weight} unit="kg" change={latest.weight - first.weight} icon={<Scale />} desired="decrease" />
-        <BodyStat label="Skeletal muscle" value={latest.skeletalMuscle} unit="kg" change={latest.skeletalMuscle - first.skeletalMuscle} icon={<Dumbbell />} desired="increase" />
-        <BodyStat label="Body fat" value={latest.bodyFat} unit="%" change={latest.bodyFat - first.bodyFat} icon={<Activity />} desired="decrease" />
-        <button className="add-stat-card" onClick={onAddRecord}><Plus size={23} /><span>Add body record</span><small>Log a new measurement</small></button>
+        <BodyStat label="체중" value={latest.weight} unit="kg" change={latest.weight - first.weight} icon={<Scale />} desired="decrease" />
+        <BodyStat label="골격근량" value={latest.skeletalMuscle} unit="kg" change={latest.skeletalMuscle - first.skeletalMuscle} icon={<Dumbbell />} desired="increase" />
+        <BodyStat label="체지방률" value={latest.bodyFat} unit="%" change={latest.bodyFat - first.bodyFat} icon={<Activity />} desired="decrease" />
+        <button className="add-stat-card" onClick={onAddRecord}><Plus size={23} /><span>신체 기록 추가</span><small>새 측정값 기록하기</small></button>
       </section>
 
       <section className="journey-grid">
         <article className="panel goal-panel">
-          <div className="panel-header"><div><span className="eyebrow">CURRENT TARGET</span><h2>October target</h2></div><button className="text-button" onClick={onEditGoal}>Edit progress</button></div>
+          <div className="panel-header"><div><span className="eyebrow">현재 목표</span><h2>10월 목표</h2></div><button className="text-button" onClick={onEditGoal}>진행 수정</button></div>
           <div className="goal-ring-wrap">
             <ProgressRing value={progress} accent={participant.accent} />
             <div><span>{goalKindLabel(participant.goal)}</span><h3>{participant.goalTitle}</h3><p>{progressLabel(participant.goal)}</p></div>
           </div>
           {participant.goal.type === 'numeric' && (
             <div className="goal-scale">
-              <span>Start <strong>{participant.goal.start}{participant.goal.unit}</strong></span>
-              <span>Current <strong>{participant.goal.current}{participant.goal.unit}</strong></span>
-              <span>Target <strong>{participant.goal.target}{participant.goal.unit}</strong></span>
+              <span>시작 <strong>{participant.goal.start}{participant.goal.unit}</strong></span>
+              <span>현재 <strong>{participant.goal.current}{participant.goal.unit}</strong></span>
+              <span>목표 <strong>{participant.goal.target}{participant.goal.unit}</strong></span>
             </div>
           )}
           {checkpointGoal && (
@@ -476,18 +510,18 @@ function JourneyPage({ participant, challenges, onAddRecord, onEditGoal, onUpdat
             </ol>
           )}
           {participant.goal.type === 'completion' && (
-            <div className={`completion-status ${participant.goal.completed ? 'done' : ''}`}><Award size={24} /><div><strong>{participant.goal.completed ? 'Mission complete' : 'Preparing for the event'}</strong><span>{participant.goal.completed ? 'The commitment was completed.' : 'Completion takes this goal to 100%.'}</span></div></div>
+            <div className={`completion-status ${participant.goal.completed ? 'done' : ''}`}><Award size={24} /><div><strong>{participant.goal.completed ? '미션 완료' : '도전을 준비 중'}</strong><span>{participant.goal.completed ? '약속한 도전을 마쳤습니다.' : '완료하면 목표가 100%가 됩니다.'}</span></div></div>
           )}
         </article>
 
         <article className="panel chart-panel">
-          <div className="panel-header chart-heading"><div><span className="eyebrow">BODY CHANGE</span><h2>All metrics, one graph</h2></div><span className="normalized-label">% CHANGE FROM BASELINE</span></div>
+          <div className="panel-header chart-heading"><div><span className="eyebrow">신체 변화</span><h2>세 지표를 한 그래프에</h2></div><span className="normalized-label">시작점 대비 변화율</span></div>
           <CombinedBodyChart records={participant.records} />
         </article>
       </section>
 
       <section className="content-section timeline-section">
-        <SectionHeading eyebrow="THE LONG GAME" title="Progress timeline" description="Body measurements and monthly challenges in one continuous record." />
+        <SectionHeading eyebrow="긴 여정" title="변화 타임라인" description="신체 측정과 월간 내기를 하나의 흐름으로 확인합니다." />
         <JourneyTimeline participant={participant} challenges={challenges} />
       </section>
     </div>
@@ -495,16 +529,16 @@ function JourneyPage({ participant, challenges, onAddRecord, onEditGoal, onUpdat
 }
 
 function PlanGoalCard({ label, goal, index }: { label: string, goal: PlanGoal, index: string }) {
-  return <article className="plan-goal-card"><span className="plan-index">{index}</span><span className="eyebrow">{label}</span><h3>{goal.title}</h3><p>{goal.note}</p><time><CalendarDays size={14} /> Target · {formatDate(goal.targetDate, true)}</time></article>
+  return <article className="plan-goal-card"><span className="plan-index">{index}</span><span className="eyebrow">{label}</span><h3>{goal.title}</h3><p>{goal.note}</p><time><CalendarDays size={14} /> 목표일 · {formatDate(goal.targetDate, true)}</time></article>
 }
 
 function PlanGoalEditor({ label, value, onChange }: { label: string, value: PlanGoal, onChange: (goal: PlanGoal) => void }) {
   return (
     <fieldset className="plan-goal-editor">
       <legend>{label}</legend>
-      <label className="form-field"><span>Goal</span><input required value={value.title} onChange={(event) => onChange({ ...value, title: event.target.value })} /></label>
-      <label className="form-field"><span>Target date</span><input type="date" required value={value.targetDate} onChange={(event) => onChange({ ...value, targetDate: event.target.value })} /></label>
-      <label className="form-field"><span>Execution note</span><textarea required value={value.note} onChange={(event) => onChange({ ...value, note: event.target.value })} /></label>
+      <label className="form-field"><span>목표</span><input required value={value.title} onChange={(event) => onChange({ ...value, title: event.target.value })} /></label>
+      <label className="form-field"><span>목표일</span><input type="date" required value={value.targetDate} onChange={(event) => onChange({ ...value, targetDate: event.target.value })} /></label>
+      <label className="form-field"><span>실행 계획</span><textarea required value={value.note} onChange={(event) => onChange({ ...value, note: event.target.value })} /></label>
     </fieldset>
   )
 }
@@ -515,7 +549,7 @@ function BodyStat({ label, value, unit, change, icon, desired }: { label: string
     <article className="body-stat-card">
       <div className="body-stat-label"><span>{icon}</span>{label}</div>
       <div className="body-stat-value"><strong>{value}</strong><span>{unit}</span></div>
-      <div className={`body-stat-change ${positive ? 'positive' : 'negative'}`}>{change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {signed(change, unit)} <span>from baseline</span></div>
+      <div className={`body-stat-change ${positive ? 'positive' : 'negative'}`}>{change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {signed(change, unit)} <span>시작점 대비</span></div>
     </article>
   )
 }
@@ -526,7 +560,7 @@ function ProgressRing({ value, accent }: { value: number, accent: string }) {
   const offset = circumference * (1 - clampProgress(value) / 100)
   return (
     <div className="progress-ring">
-      <svg viewBox="0 0 104 104" aria-label={`Goal progress ${value}%`}><circle className="ring-bg" cx="52" cy="52" r={radius} /><circle className="ring-value" cx="52" cy="52" r={radius} style={{ stroke: accent, strokeDasharray: circumference, strokeDashoffset: offset }} /></svg>
+      <svg viewBox="0 0 104 104" aria-label={`목표 달성률 ${value}%`}><circle className="ring-bg" cx="52" cy="52" r={radius} /><circle className="ring-value" cx="52" cy="52" r={radius} style={{ stroke: accent, strokeDasharray: circumference, strokeDashoffset: offset }} /></svg>
       <strong>{value}<small>%</small></strong>
     </div>
   )
@@ -546,7 +580,7 @@ function CombinedBodyChart({ records }: { records: BodyRecord[] }) {
   return (
     <div className="chart-wrap combined-chart">
       <div className="metric-legend">{keys.map((metric) => <span key={metric}><i style={{ background: colors[metric] }} /><strong>{metricLabels[metric]}</strong><em>{data.at(-1)?.[metric]}{metricUnits[metric]}</em></span>)}</div>
-      <svg className="line-chart" viewBox="0 0 100 92" preserveAspectRatio="none" role="img" aria-label="Weight, skeletal muscle, and body fat change graph">
+      <svg className="line-chart" viewBox="0 0 100 92" preserveAspectRatio="none" role="img" aria-label="체중, 골격근량, 체지방률 변화 그래프">
         {[22, 49, 76].map((y) => <line key={y} x1="4" y1={y} x2="96" y2={y} className="grid-line" />)}
         {keys.map((metric) => {
           const points = data.map((record, index) => {
@@ -558,7 +592,7 @@ function CombinedBodyChart({ records }: { records: BodyRecord[] }) {
         })}
       </svg>
       <div className="chart-labels">{data.map((record) => <span key={record.id}>{formatDate(record.date)}</span>)}</div>
-      <p className="chart-note">Each line is normalized to its Sep 30 baseline so different units can be read together.</p>
+      <p className="chart-note">단위가 다른 세 지표를 함께 볼 수 있도록 9월 30일 시작점 대비 변화율로 표시합니다.</p>
     </div>
   )
 }
@@ -575,13 +609,13 @@ function JourneyTimeline({ participant, challenges }: { participant: Participant
         <article className="timeline-event" key={`r-${event.record.id}`}>
           <div className="timeline-rail"><span className="timeline-node record-node"><LineChart size={15} /></span>{index < events.length - 1 && <i />}</div>
           <time>{formatDate(event.date, true)}</time>
-          <div className="timeline-card"><span className="event-type">BODY CHECK</span><h3>{event.record.note || 'Body record updated'}</h3><div className="record-values"><span>{event.record.weight}<small>kg weight</small></span><span>{event.record.skeletalMuscle}<small>kg muscle</small></span><span>{event.record.bodyFat}<small>% body fat</small></span></div></div>
+          <div className="timeline-card"><span className="event-type">신체 측정</span><h3>{event.record.note || '신체 기록 업데이트'}</h3><div className="record-values"><span>{event.record.weight}<small>kg 체중</small></span><span>{event.record.skeletalMuscle}<small>kg 골격근</small></span><span>{event.record.bodyFat}<small>% 체지방</small></span></div></div>
         </article>
       ) : (
         <article className="timeline-event" key={`c-${event.challenge.id}`}>
           <div className="timeline-rail"><span className={`timeline-node challenge-node ${event.challenge.status}`}><Trophy size={15} /></span>{index < events.length - 1 && <i />}</div>
           <time>{formatDate(event.date, true)}</time>
-          <div className="timeline-card challenge-event"><span className="event-type">{event.challenge.edition} · MONTHLY PACT</span><h3>{event.challenge.title}</h3><p>{event.challenge.subtitle}</p><ChallengeResult challenge={event.challenge} participantId={participant.id} /></div>
+          <div className="timeline-card challenge-event"><span className="event-type">{event.challenge.edition} · 월간 내기</span><h3>{event.challenge.title}</h3><p>{event.challenge.subtitle}</p><ChallengeResult challenge={event.challenge} participantId={participant.id} /></div>
         </article>
       ))}
     </div>
@@ -592,7 +626,7 @@ function ChallengeResult({ challenge, participantId }: { challenge: Challenge, p
   const goal = challenge.goals.find((item) => item.participantId === participantId)
   if (!goal) return null
   if (challenge.status !== 'completed') return <span className="result-pill active"><Clock3 size={13} /> {goal.title}</span>
-  return <span className={`result-pill ${goal.result ? 'success' : 'missed'}`}>{goal.result ? <CheckCircle2 size={13} /> : <X size={13} />}{goal.result ? 'Goal achieved' : 'Goal missed'} · {goal.title}</span>
+  return <span className={`result-pill ${goal.result ? 'success' : 'missed'}`}>{goal.result ? <CheckCircle2 size={13} /> : <X size={13} />}{goal.result ? '목표 달성' : '목표 미달성'} · {goal.title}</span>
 }
 
 function ChallengesPage({ challenges, participants, selectedChallengeId }: { challenges: Challenge[], participants: Participant[], selectedChallengeId: string }) {
@@ -606,11 +640,11 @@ function ChallengesPage({ challenges, participants, selectedChallengeId }: { cha
   return (
     <div className="page challenges-page">
       <section className="page-intro">
-        <div><span className="eyebrow">MONTHLY PACTS</span><h1>Every month<br /><em>leaves a mark.</em></h1></div>
-        <p>Set the next challenge, work the current one,<br />and keep an honest record of every result.</p>
+        <div><span className="eyebrow">월간 내기</span><h1>매달의 도전은<br /><em>흔적을 남긴다.</em></h1></div>
+        <p>다음 도전을 정하고, 현재 목표를 밀어붙이고,<br />모든 결과를 솔직하게 기록합니다.</p>
       </section>
       <div className="challenge-filters segmented-control">
-        {([['all', 'All'], ['upcoming', 'Upcoming'], ['active', 'Active'], ['completed', 'Complete']] as const).map(([value, label]) => <button className={filter === value ? 'active' : ''} onClick={() => setFilter(value)} key={value}>{label}</button>)}
+        {([['all', '전체'], ['upcoming', '예정'], ['active', '진행 중'], ['completed', '완료']] as const).map(([value, label]) => <button className={filter === value ? 'active' : ''} onClick={() => setFilter(value)} key={value}>{label}</button>)}
       </div>
       <section className="challenge-layout">
         <div className="challenge-list">
@@ -627,7 +661,7 @@ function ChallengeListCard({ challenge, selected, onClick }: { challenge: Challe
     <button className={`challenge-list-card ${selected ? 'selected' : ''}`} onClick={onClick}>
       <div className="challenge-list-top"><span>{challenge.edition}</span><StatusBadge status={challenge.status} /></div>
       <h2>{challenge.title}</h2><p>{challenge.subtitle}</p>
-      <div className="challenge-meta"><span><CalendarDays size={14} /> {formatDate(challenge.startDate)} — {formatDate(challenge.endDate)}</span><span><UserRound size={14} /> {challenge.participantIds.length} owner</span></div>
+      <div className="challenge-meta"><span><CalendarDays size={14} /> {formatDate(challenge.startDate)} — {formatDate(challenge.endDate)}</span><span><UserRound size={14} /> {challenge.participantIds.length}명</span></div>
     </button>
   )
 }
@@ -636,8 +670,8 @@ function ChallengeDetail({ challenge, participants }: { challenge: Challenge, pa
   return (
     <article className="challenge-detail">
       <div className="detail-head"><div><span className="eyebrow">{challenge.edition}</span><h2>{challenge.title}</h2><p>{challenge.subtitle}</p></div><StatusBadge status={challenge.status} /></div>
-      <div className="detail-rule"><Trophy size={20} /><div><span>THE STAKE</span><strong>{challenge.reward}</strong></div></div>
-      <h3 className="detail-subtitle">OWNER AND TARGET</h3>
+      <div className="detail-rule"><Trophy size={20} /><div><span>이번 내기의 보상</span><strong>{challenge.reward}</strong></div></div>
+      <h3 className="detail-subtitle">참가자와 목표</h3>
       <div className="challenge-goals">
         {challenge.goals.map((item) => {
           const person = participants.find((candidate) => candidate.id === item.participantId)!
@@ -646,7 +680,7 @@ function ChallengeDetail({ challenge, participants }: { challenge: Challenge, pa
             <div className="challenge-goal-row" key={item.participantId}>
               <Avatar person={person} size="small" />
               <div><strong>{person.name}</strong><span>{item.title}</span></div>
-              {challenge.status === 'completed' ? <span className={`outcome ${item.result ? 'success' : 'missed'}`}>{item.result ? <Check size={14} /> : <Minus size={14} />}{item.result ? 'Achieved' : 'Missed'}</span> : challenge.status === 'active' ? <span className="outcome progress">{currentProgress}%</span> : <span className="outcome pending">Planned</span>}
+              {challenge.status === 'completed' ? <span className={`outcome ${item.result ? 'success' : 'missed'}`}>{item.result ? <Check size={14} /> : <Minus size={14} />}{item.result ? '달성' : '미달성'}</span> : challenge.status === 'active' ? <span className="outcome progress">{currentProgress}%</span> : <span className="outcome pending">예정</span>}
             </div>
           )
         })}
@@ -657,7 +691,7 @@ function ChallengeDetail({ challenge, participants }: { challenge: Challenge, pa
 }
 
 function StatusBadge({ status }: { status: ChallengeStatus }) {
-  const labels = { upcoming: 'Upcoming', active: 'Active', completed: 'Complete' }
+  const labels = { upcoming: '예정', active: '진행 중', completed: '완료' }
   return <span className={`status-badge ${status}`}>{status === 'active' && <span className="live-dot" />}{labels[status]}</span>
 }
 
@@ -667,12 +701,12 @@ function Avatar({ person, size = 'default' }: { person: Participant, size?: 'sma
 
 function BottomNav({ view, onNavigate, onAdd }: { view: View, onNavigate: (view: View) => void, onAdd: () => void }) {
   return (
-    <nav className="bottom-nav" aria-label="Mobile navigation">
-      <button className={view === 'squad' ? 'active' : ''} onClick={() => onNavigate('squad')}><Home /><span>Squad</span></button>
-      <button className={view === 'journey' ? 'active' : ''} onClick={() => onNavigate('journey')}><UserRound /><span>My Log</span></button>
-      <button className="add-button" onClick={onAdd} aria-label="Add record"><Plus /></button>
-      <button className={view === 'challenges' ? 'active' : ''} onClick={() => onNavigate('challenges')}><Trophy /><span>Challenges</span></button>
-      <button onClick={() => onNavigate('squad')}><Menu /><span>More</span></button>
+    <nav className="bottom-nav" aria-label="모바일 메뉴">
+      <button className={view === 'squad' ? 'active' : ''} onClick={() => onNavigate('squad')}><Home /><span>스쿼드</span></button>
+      <button className={view === 'journey' ? 'active' : ''} onClick={() => onNavigate('journey')}><UserRound /><span>나의 기록</span></button>
+      <button className="add-button" onClick={onAdd} aria-label="기록 추가"><Plus /></button>
+      <button className={view === 'challenges' ? 'active' : ''} onClick={() => onNavigate('challenges')}><Trophy /><span>월간 내기</span></button>
+      <button onClick={() => onNavigate('squad')}><Menu /><span>더보기</span></button>
     </nav>
   )
 }
@@ -687,7 +721,7 @@ function Modal({ title, eyebrow, onClose, children }: { title: string, eyebrow: 
   return (
     <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="modal" role="dialog" aria-modal="true" aria-label={title}>
-        <div className="modal-header"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close"><X /></button></div>
+        <div className="modal-header"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="닫기"><X /></button></div>
         {children}
       </section>
     </div>
@@ -700,21 +734,21 @@ function RecordModal({ participant, onClose, onSave }: { participant: Participan
 
   function submit(event: FormEvent) {
     event.preventDefault()
-    onSave({ id: `record-${Date.now()}`, date: form.date, weight: Number(form.weight), skeletalMuscle: Number(form.skeletalMuscle), bodyFat: Number(form.bodyFat), note: form.note.trim() || 'New body scan' })
+    onSave({ id: `record-${Date.now()}`, date: form.date, weight: Number(form.weight), skeletalMuscle: Number(form.skeletalMuscle), bodyFat: Number(form.bodyFat), note: form.note.trim() || '새 신체 측정' })
   }
 
   return (
-    <Modal title="Add body record" eyebrow={`${participant.name} · BODY LOG`} onClose={onClose}>
+    <Modal title="신체 기록 추가" eyebrow={`${participant.name} · 신체 기록`} onClose={onClose}>
       <form onSubmit={submit}>
-        <label className="form-field full"><span>Measurement date</span><input type="date" required value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>
+        <label className="form-field full"><span>측정일</span><input type="date" required value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>
         <div className="form-grid-three">
-          <NumberField label="Weight" unit="kg" value={form.weight} onChange={(value) => setForm({ ...form, weight: value })} />
-          <NumberField label="Skeletal muscle" unit="kg" value={form.skeletalMuscle} onChange={(value) => setForm({ ...form, skeletalMuscle: value })} />
-          <NumberField label="Body fat" unit="%" value={form.bodyFat} onChange={(value) => setForm({ ...form, bodyFat: value })} />
+          <NumberField label="체중" unit="kg" value={form.weight} onChange={(value) => setForm({ ...form, weight: value })} />
+          <NumberField label="골격근량" unit="kg" value={form.skeletalMuscle} onChange={(value) => setForm({ ...form, skeletalMuscle: value })} />
+          <NumberField label="체지방률" unit="%" value={form.bodyFat} onChange={(value) => setForm({ ...form, bodyFat: value })} />
         </div>
-        <label className="form-field full"><span>Training note <small>optional</small></span><textarea placeholder="Condition, training details, or what changed today." value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} /></label>
-        <p className="form-notice"><Lock size={14} /> This information stays in this browser.</p>
-        <div className="modal-actions"><button type="button" className="button button-secondary" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save record <ArrowRight size={17} /></button></div>
+        <label className="form-field full"><span>운동 메모 <small>선택</small></span><textarea placeholder="컨디션, 운동 내용, 오늘 달라진 점을 남겨보세요." value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} /></label>
+        <p className="form-notice"><Lock size={14} /> 입력한 정보는 이 브라우저에만 저장됩니다.</p>
+        <div className="modal-actions"><button type="button" className="button button-secondary" onClick={onClose}>취소</button><button className="button button-primary" type="submit">기록 저장 <ArrowRight size={17} /></button></div>
       </form>
     </Modal>
   )
@@ -734,16 +768,16 @@ function GoalModal({ participant, onClose, onSave }: { participant: Participant,
   }
 
   return (
-    <Modal title="Edit goal progress" eyebrow={`${participant.name} · CURRENT TARGET`} onClose={onClose}>
+    <Modal title="목표 진행 수정" eyebrow={`${participant.name} · 현재 목표`} onClose={onClose}>
       <form onSubmit={submit}>
-        <label className="form-field full"><span>Goal name</span><input value={title} required onChange={(event) => setTitle(event.target.value)} /></label>
-        <div className="goal-type-readonly"><Target size={18} /><div><span>Goal format</span><strong>{goalKindLabel(goal)}</strong></div><small>The format stays fixed during an active challenge.</small></div>
-        {goal.type === 'numeric' && <div className="form-grid-two"><NumberField label="Current value" unit={goal.unit} value={`${goal.current}`} onChange={(value) => setGoal({ ...goal, current: Number(value) })} /><NumberField label="Target value" unit={goal.unit} value={`${goal.target}`} onChange={(value) => setGoal({ ...goal, target: Number(value) })} /></div>}
+        <label className="form-field full"><span>목표 이름</span><input value={title} required onChange={(event) => setTitle(event.target.value)} /></label>
+        <div className="goal-type-readonly"><Target size={18} /><div><span>목표 방식</span><strong>{goalKindLabel(goal)}</strong></div><small>진행 중인 내기에서는 방식이 유지됩니다.</small></div>
+        {goal.type === 'numeric' && <div className="form-grid-two"><NumberField label="현재 값" unit={goal.unit} value={`${goal.current}`} onChange={(value) => setGoal({ ...goal, current: Number(value) })} /><NumberField label="목표 값" unit={goal.unit} value={`${goal.target}`} onChange={(value) => setGoal({ ...goal, target: Number(value) })} /></div>}
         {goal.type === 'checkpoint' && (
-          <div className="checkpoint-edit"><span>Completed milestones</span>{goal.checkpoints.map((point, index) => <button type="button" className={index < goal.completedCount ? 'done' : ''} onClick={() => setGoal({ ...goal, completedCount: index + 1 === goal.completedCount ? index : index + 1 })} key={point}><span>{index < goal.completedCount && <Check size={13} />}</span>{point}</button>)}</div>
+          <div className="checkpoint-edit"><span>완료한 체크포인트</span>{goal.checkpoints.map((point, index) => <button type="button" className={index < goal.completedCount ? 'done' : ''} onClick={() => setGoal({ ...goal, completedCount: index + 1 === goal.completedCount ? index : index + 1 })} key={point}><span>{index < goal.completedCount && <Check size={13} />}</span>{point}</button>)}</div>
         )}
-        {goal.type === 'completion' && <label className="completion-toggle"><input type="checkbox" checked={goal.completed} onChange={(event) => setGoal({ ...goal, completed: event.target.checked })} /><span><CheckCircle2 /> This challenge is complete.</span></label>}
-        <div className="modal-actions"><button type="button" className="button button-secondary" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes <ArrowRight size={17} /></button></div>
+        {goal.type === 'completion' && <label className="completion-toggle"><input type="checkbox" checked={goal.completed} onChange={(event) => setGoal({ ...goal, completed: event.target.checked })} /><span><CheckCircle2 /> 이 도전을 완료했습니다.</span></label>}
+        <div className="modal-actions"><button type="button" className="button button-secondary" onClick={onClose}>취소</button><button className="button button-primary" type="submit">변경 저장 <ArrowRight size={17} /></button></div>
       </form>
     </Modal>
   )
