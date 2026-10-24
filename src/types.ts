@@ -34,6 +34,12 @@ export interface BodyRecord {
   note: string
 }
 
+export interface PlanGoal {
+  title: string
+  targetDate: string
+  note: string
+}
+
 export interface Participant {
   id: string
   name: string
@@ -49,6 +55,10 @@ export interface Participant {
   cheerCount: number
   records: BodyRecord[]
   previousResult: 'success' | 'missed' | 'first'
+  plans: {
+    shortTerm: PlanGoal
+    longTerm: PlanGoal
+  }
 }
 
 export interface ChallengeGoalSnapshot {
